@@ -5,11 +5,11 @@ import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.io.PrintWriter;
 import java.net.Socket;
-
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -35,6 +35,8 @@ public class Application extends JFrame implements KeyListener {
     public Socket s;
     public BufferedReader r;
     public PrintWriter w;
+    DataOutputStream os = null;
+    DataInputStream is = null;
     static Logger mylogger = Logger.getLogger(Application.class);
 
     
@@ -94,6 +96,11 @@ public class Application extends JFrame implements KeyListener {
                 r = new BufferedReader(
                         new InputStreamReader(s.getInputStream()));
                 w = new PrintWriter(s.getOutputStream(), true);
+                
+                os = new DataOutputStream(s.getOutputStream());
+                is = new DataInputStream(s.getInputStream());
+                
+                
                 line = r.readLine();
                 if (line != null) {
                     appendToPane(tPane, line + "\n", Color.BLACK);
@@ -113,6 +120,21 @@ public class Application extends JFrame implements KeyListener {
                 text = text.replace("send", "").trim();
                 w.println(text);
                 line = r.readLine();
+               
+                /*
+
+                while (text != null) {
+                    os.writeBytes(text);
+                    os.writeByte('\n');
+                    System.out.println("echo: " + is.readLine());
+                    text = null;
+                    line = is.readLine().toString();
+                    System.out.println("echo of line: " + line);
+                    
+                    
+                    
+                }
+                */
                 appendToPane(tPane, line + "\n", Color.BLACK);
                 appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
             } catch (Exception e1) {

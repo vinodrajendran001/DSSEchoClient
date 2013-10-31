@@ -1,4 +1,2 @@
-Log msg
-HELLLO
-[Ljava.lang.StackTraceElement;@eb45831
-[Ljava.lang.StackTraceElement;@647d5718
+Connection Established
+Connection Established
