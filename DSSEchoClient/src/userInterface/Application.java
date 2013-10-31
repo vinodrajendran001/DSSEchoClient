@@ -35,7 +35,7 @@ public class Application extends JFrame implements KeyListener {
     public Socket s;
     public BufferedReader r;
     public PrintWriter w;
-    private static Logger mylogger = Logger.getLogger(Application.class);
+    static Logger mylogger = Logger.getLogger(Application.class);
 
     
     public String[] host = new String[2];
@@ -90,6 +90,7 @@ public class Application extends JFrame implements KeyListener {
             host[1] = text.split("\\s+")[2];
             try {
                 s = new Socket(host[0], Integer.parseInt(host[1]));
+                
                 r = new BufferedReader(
                         new InputStreamReader(s.getInputStream()));
                 w = new PrintWriter(s.getOutputStream(), true);
@@ -97,9 +98,11 @@ public class Application extends JFrame implements KeyListener {
                 if (line != null) {
                     appendToPane(tPane, line + "\n", Color.BLACK);
                     appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+                    mylogger.info("Connection Established");
                 }
             } catch (Exception e1) {
                 appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+                mylogger.debug(e1.getStackTrace());
                 e1.printStackTrace();
                 
                 
@@ -114,8 +117,10 @@ public class Application extends JFrame implements KeyListener {
                 appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
             } catch (Exception e1) {
                 appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+                 mylogger.warn(e1.getStackTrace());
+
                 e1.printStackTrace();
-                mylogger.debug("HELLLO");
+               
             }
 
         }
@@ -138,14 +143,18 @@ public class Application extends JFrame implements KeyListener {
                         + " to port " + host[1] + " is now closed! \n",
                         Color.RED);
                 appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+                mylogger.info("Connection Closed");
             } catch (IOException e1) {
                 appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+                mylogger.debug(e1.getStackTrace());
+
                 e1.printStackTrace();
             }
         } else if (text.trim().equals("quit")) {
 
             appendToPane(tPane, "Application to close!", Color.RED);
             appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+            mylogger.info("Terminal Closed");
             dispose();
         } else if (text.trim().equals("help")) {
 
@@ -186,6 +195,8 @@ public class Application extends JFrame implements KeyListener {
                 inspectText(text);
             } catch (IOException e1) {
                 appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+                mylogger.debug(e1.getStackTrace());
+
                 e1.printStackTrace();
             }
             tPane.setEditable(true);
@@ -230,18 +241,16 @@ public class Application extends JFrame implements KeyListener {
         ///PropertyConfigurator.configure("log4j.properties");
         PropertyConfigurator.configure("log.config");
 
-        mylogger.info("Log msg");
-
+        
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 try {
                     new Application();
                 } catch (AWTException e) {
-                    e.printStackTrace();
-                    mylogger.info("This is a message");
+                    mylogger.debug(e.getStackTrace());
+                   
                     
                     BasicConfigurator.configure();
-                    mylogger.debug("Hello World!");
                     
                 }
             }
