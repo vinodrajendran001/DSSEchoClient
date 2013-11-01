@@ -28,6 +28,8 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.SimpleLayout;
 
+
+
 public class Application extends JFrame implements KeyListener {
 
 	private static final long serialVersionUID = 1L;
@@ -39,10 +41,21 @@ public class Application extends JFrame implements KeyListener {
 	private DataOutputStream out;
 	private byte[] msg = new byte[128 * 1024];
 	private int i = 0;
-	public static Logger mylogger = Logger.getLogger(Application.class);
-
-	public String[] host = new String[2];
 	
+	
+	public String[] host = new String[2];
+	/* log declarations */
+	
+	public static Logger mylogger;
+	static SimpleLayout layout;
+	static ConsoleAppender cA;
+	static String logDir;
+	static String pattern;
+	static PatternLayout pLayout;
+	
+	/*log Declarations */
+
+
 
 
 	/**
@@ -51,6 +64,9 @@ public class Application extends JFrame implements KeyListener {
 	 * @throws AWTException
 	 */
 	public Application() throws AWTException {
+		
+		
+		
 		topPanel = new JPanel();
 		tPane = new JTextPane();
 
@@ -341,12 +357,28 @@ public class Application extends JFrame implements KeyListener {
 		
 		PropertyConfigurator.configure("log.config");
 
-	 
+		FileAppender fA = null ; 
+		mylogger = Logger.getLogger(Application.class);
+		layout = new SimpleLayout();
+		cA = new ConsoleAppender(layout);
+		mylogger.addAppender(cA);
 	  
 	  
 
 		mylogger.info("Log msg");
 
+		logDir = "logs/client.log"; //Log file and path
+		pattern = "%d{ISO8601} %-5p [%t] %c: %m%n";
+		pLayout = new PatternLayout(pattern);
+		
+
+		try {
+			fA = new FileAppender(pLayout,logDir,true);
+			} catch(Exception e) 
+				{
+				mylogger.error(e);}
+
+		mylogger.addAppender(fA);
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				try {
