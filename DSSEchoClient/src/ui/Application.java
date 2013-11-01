@@ -1,4 +1,4 @@
-package userInterface;
+package ui;
 
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -37,7 +37,7 @@ public class Application extends JFrame implements KeyListener {
 	byte one;
 	char[] mess = new char[128 * 8];
 	byte[] msg = new byte[128 * 8];
-	int i = 0;
+	int i = 0, val =0;
 	private static Logger mylogger = Logger.getLogger(Application.class);
 	private static final byte DELIMITER = (byte) '\n';
 
@@ -88,14 +88,14 @@ public class Application extends JFrame implements KeyListener {
 				in = new DataInputStream(s.getInputStream());
 				out = new DataOutputStream(s.getOutputStream());
 				System.out.println("before while");
-				while (((one = in.readByte()) != '\n') && i < (128 * 8)) {
-					msg[i] = one;
-					System.out.println("1 :"+one);
-					System.out.println("2 :"+msg[i]);
-					i++;
+				mylogger.info("opening message from server in bytes:"+msg.toString());
+				if(((in.read(msg)) != 13) && i < (128 * 8)) {
+					text = new String(msg);
+					System.out.println("2 :"+text);
 				}
 				q = new String(msg);
 				System.out.println(q);
+				mylogger.info("opening message from server:"+q);
 				if (msg != null) {
 					appendToPane(tPane, q + "\n", Color.BLACK);
 					appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
@@ -104,24 +104,31 @@ public class Application extends JFrame implements KeyListener {
 				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
 				e1.printStackTrace();
 
+				mylogger.debug("Exception in Connect :" +e1.getMessage() );
+				mylogger.debug("Trace Exception in Connect" +e1.getStackTrace() );
+
 			}
 
 		} else if (text.contains("send")) {
 			try {
 				text = text.replace("send", "").trim();
 				System.out.println("0 :"+text);
-				out.writeBytes(text+""+13);
-				while (((one = in.readByte()) != 13) && i < (128 * 8)) {
-					msg[i] = one;
-
-					System.out.println("1 :"+one);
-					System.out.println("2 :"+msg[i]);
+				msg = text.getBytes();
+				mylogger.info("Recieved message in bytes :"+msg.toString());
+				while(i!= msg.length){
+					out.write(msg[i]);
 					i++;
-					System.out.println("3 :"+i);
-					
+				}
+				out.write(13);
+				
+				if(((in.read(msg)) != 13) && i < (128 * 8)) {
+					text = new String(msg);
+					System.out.println("3 :"+text);
+					mylogger.info("message from server in bytes :"+text);
 				}
 				r = new String(msg);
 				System.out.println(r);
+				mylogger.info("message from server in bytes :"+r);
 				if (msg != null) {
 					appendToPane(tPane, r + "\n", Color.BLACK);
 					appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
@@ -129,7 +136,9 @@ public class Application extends JFrame implements KeyListener {
 			} catch (Exception e1) {
 				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
 				e1.printStackTrace();
-				mylogger.debug("HELLLO");
+
+				mylogger.debug("Exception in Send :" +e1.getMessage() );
+				mylogger.debug("Trace Exception in Send" +e1.getStackTrace() );
 			}
 
 		}
@@ -169,6 +178,9 @@ public class Application extends JFrame implements KeyListener {
 			} catch (IOException e1) {
 				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
 				e1.printStackTrace();
+				mylogger.debug("Exception in Disconnect :" +e1.getMessage() );
+				mylogger.debug("Trace Exception in Disconnect" +e1.getStackTrace() );
+				
 			}
 		} else if (text.trim().equals("quit")) {
 
@@ -184,7 +196,7 @@ public class Application extends JFrame implements KeyListener {
 							+ "send <message> - to send message to the server \n "
 							+ "disconnect - to disconnect from the server \n "
 							+ "quit - to quit the application \n "
-							+ "logLevel <level> - to set the log level for the logger. \n",
+							+ "logLevel <level> - to set the log level for the logger. \n Level - INFO to denote messages \n Level - DEBUG indicates the Exception Messages",
 					Color.RED);
 			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
 
@@ -197,7 +209,7 @@ public class Application extends JFrame implements KeyListener {
 							+ "send <message> - to send message to the server \n "
 							+ "disconnect - to disconnect from the server \n "
 							+ "quit - to quit the application \n "
-							+ "logLevel <level> - to set the log level for the logger. \n",
+							+ "logLevel <level> - to set the log level for the logger. \n Level - INFO to denote messages \n Level - DEBUG indicates the Exception Messages",
 					Color.RED);
 			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
 
