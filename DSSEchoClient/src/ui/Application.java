@@ -20,53 +20,69 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.SimpleLayout;
 
 public class Application extends JFrame implements KeyListener {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel topPanel;
 	private JTextPane tPane;
-	private String text;
-	String line,r,q;
-	public Socket s;
-	public DataInputStream in;
-	public DataOutputStream out;
-	byte one;
-	char[] mess = new char[128 * 8];
-	byte[] msg = new byte[128 * 8];
-	int i = 0, val =0;
-	private static Logger mylogger = Logger.getLogger(Application.class);
-	private static final byte DELIMITER = (byte) '\n';
+	private String msg_received, msg_sent;
+	private Socket s;
+	private DataInputStream in;
+	private DataOutputStream out;
+	private byte[] msg = new byte[128 * 1024];
+	private int i = 0;
+	public static Logger mylogger = Logger.getLogger(Application.class);
 
 	public String[] host = new String[2];
+	
 
+
+	/**
+	 * Creates an Application GUI with EchoClient> prompt.
+	 * 
+	 * @throws AWTException
+	 */
 	public Application() throws AWTException {
-
 		topPanel = new JPanel();
+		tPane = new JTextPane();
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setSize(800, 500);
-
-		tPane = new JTextPane();
 		setBackground(Color.WHITE);
+
 		topPanel.setBackground(Color.WHITE);
 		tPane.setBackground(Color.WHITE);
+
 		appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
 		appendToPane(tPane, "", Color.BLACK);
-		getContentPane().add(topPanel, BorderLayout.WEST);
+
 		tPane.addKeyListener(this);
 		topPanel.add(tPane, BorderLayout.WEST);
-		setVisible(true);
 
+		getContentPane().add(topPanel, BorderLayout.WEST);
+		setVisible(true);
 	}
 
-	private void appendToPane(JTextPane tp, String msg, Color c) {
+	/**
+	 * Adds style to the text input for the Application GUI.
+	 * 
+	 * @param tp
+	 * @param msg
+	 * @param c
+	 */
+	public void appendToPane(JTextPane tp, String msg, Color c) {
 		StyleContext sc = StyleContext.getDefaultStyleContext();
 		AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY,
 				StyleConstants.Foreground, c);
+
 		aset = sc.addAttribute(aset, StyleConstants.FontFamily,
 				"Lucida Console");
 		aset = sc.addAttribute(aset, StyleConstants.Alignment,
@@ -79,7 +95,63 @@ public class Application extends JFrame implements KeyListener {
 
 	}
 
-	public void inspectText(String text) throws IOException {
+	/**
+	 * Add text to the textpane.
+	 * 
+	 * @param text
+	 */
+	public void appendText(String text) {
+		appendToPane(tPane, text + "\n", Color.BLACK);
+		appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+	}
+
+	/**
+	 * Add exceptions to the textpane.
+	 * 
+	 * @param text
+	 */
+	public void appendException(String text) {
+		appendToPane(tPane, text + "\n", Color.RED);
+		appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+	}
+
+	/**
+	 * Receive data as byte array from the Server.
+	 * 
+	 * @return msg
+	 * @throws IOException
+	 */
+	public byte[] receive() throws IOException {
+		in = new DataInputStream(s.getInputStream());
+		msg = new byte[128 * 1024];
+		if (((in.read(msg)) != 13)) {
+		}
+
+		return msg;
+	}
+
+	/**
+	 * Send data as byte array to the Server.
+	 * 
+	 * @param msg
+	 * @throws IOException
+	 */
+	private void send(byte[] msg) throws IOException {
+		out = new DataOutputStream(s.getOutputStream());
+		i = 0;
+		while (i != msg.length) {
+			out.write(msg[i++]);
+		}
+		out.write(13);
+	}
+
+	/**
+	 * Identify the commands and perform the corresponding operation.
+	 * 
+	 * @param text
+	 * @throws IOException
+	 */
+	public void communication(String text) throws IOException {
 		if (text.contains("connect") && !text.contains("disconnect")) {
 			host[0] = text.split("\\s+")[1];
 			host[1] = text.split("\\s+")[2];
@@ -87,58 +159,40 @@ public class Application extends JFrame implements KeyListener {
 				s = new Socket(host[0], Integer.parseInt(host[1]));
 				in = new DataInputStream(s.getInputStream());
 				out = new DataOutputStream(s.getOutputStream());
-				System.out.println("before while");
-				mylogger.info("opening message from server in bytes:"+msg.toString());
-				if(((in.read(msg)) != 13) && i < (128 * 8)) {
-					text = new String(msg);
-					System.out.println("2 :"+text);
-				}
-				q = new String(msg);
-				System.out.println(q);
-				mylogger.info("opening message from server:"+q);
+
+				msg_received = new String(receive());
+				mylogger.info("Welcome Message from Server:" + msg_received);
 				if (msg != null) {
-					appendToPane(tPane, q + "\n", Color.BLACK);
-					appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+					appendText(msg_received);
 				}
 			} catch (Exception e1) {
-				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+				appendException(e1.getMessage());
 				e1.printStackTrace();
 
-				mylogger.debug("Exception in Connect :" +e1.getMessage() );
-				mylogger.debug("Trace Exception in Connect" +e1.getStackTrace() );
+				mylogger.debug("Exception in Connect :" + e1.getMessage());
+				mylogger.debug("Trace Exception in Connect"
+						+ e1.getStackTrace());
 
 			}
 
 		} else if (text.contains("send")) {
 			try {
-				text = text.replace("send", "").trim();
-				System.out.println("0 :"+text);
-				msg = text.getBytes();
-				mylogger.info("Recieved message in bytes :"+msg.toString());
-				while(i!= msg.length){
-					out.write(msg[i]);
-					i++;
-				}
-				out.write(13);
-				
-				if(((in.read(msg)) != 13) && i < (128 * 8)) {
-					text = new String(msg);
-					System.out.println("3 :"+text);
-					mylogger.info("message from server in bytes :"+text);
-				}
-				r = new String(msg);
-				System.out.println(r);
-				mylogger.info("message from server in bytes :"+r);
+				msg_sent = text.replace("send", "").trim();
+				msg = msg_sent.getBytes();
+				mylogger.info("Message Sent to Server :" + msg.toString());
+				send(msg);
+				mylogger.info("Message Received from Server :" + msg_sent);
+				msg_received = new String(receive());
+				mylogger.info("Message Received from Server :" + msg_received);
 				if (msg != null) {
-					appendToPane(tPane, r + "\n", Color.BLACK);
-					appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+					appendText(msg_received);
 				}
 			} catch (Exception e1) {
-				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+				appendException(e1.getMessage());
 				e1.printStackTrace();
 
-				mylogger.debug("Exception in Send :" +e1.getMessage() );
-				mylogger.debug("Trace Exception in Send" +e1.getStackTrace() );
+				mylogger.debug("Exception in Send :" + e1.getMessage());
+				mylogger.debug("Trace Exception in Send" + e1.getStackTrace());
 			}
 
 		}
@@ -163,71 +217,87 @@ public class Application extends JFrame implements KeyListener {
 					mylogger.setLevel(Level.OFF);
 				if (s.equals("TRACE"))
 					mylogger.setLevel(Level.TRACE);
-				out.writeBytes(text);
+				else {
+					mylogger.setLevel(Level.INFO);
+				}
 
-			} catch (Exception e) {
-
+			} catch (Exception e1) {
+				appendException(e1.getMessage());
+				e1.printStackTrace();
+				mylogger.debug("Exception in LogLevel: " + e1.getMessage());
+				mylogger.debug("Trace Exception in LogLevel: "
+						+ e1.getStackTrace());
 			}
 		} else if (text.trim().equals("disconnect")) {
 			try {
 				s.close();
-				appendToPane(tPane, "Connection to Server" + host[0]
-						+ " to port " + host[1] + " is now closed! \n",
-						Color.RED);
-				appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+				text = "Connection to Server" + host[0] + " to port " + host[1]
+						+ " is now closed!";
+				appendException(text);
 			} catch (IOException e1) {
-				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
+				appendException(e1.getMessage());
 				e1.printStackTrace();
-				mylogger.debug("Exception in Disconnect :" +e1.getMessage() );
-				mylogger.debug("Trace Exception in Disconnect" +e1.getStackTrace() );
-				
+				mylogger.debug("Exception in Disconnect:" + e1.getMessage());
+				mylogger.debug("Trace Exception in Disconnect: "
+						+ e1.getStackTrace());
+
 			}
+		} else if (s.isClosed() && text.trim().contains("send")) {
+			text = "Socket Closed.";
+			appendException(text);
 		} else if (text.trim().equals("quit")) {
-
-			appendToPane(tPane, "Application to close!", Color.RED);
-			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+			text = "Application to close!";
+			appendException(text);
 			dispose();
-		} else if (text.trim().equals("help")) {
+		} 
+		
+		
+		else if (text.trim().equals("help")) {
+			System.out.println("help inside");
+			text = "Type the following comments \n "
+					+ "connect <Server> <Port> - to connect to the server \n "
+					+ "send <message> - to send message to the server \n "
+					+ "disconnect - to disconnect from the server \n "
+					+ "quit - to quit the application \n "
+					+ "logLevel <level> - to set the log level for the logger. \n "
+					+ "Level INFO - to log messages. \n "
+					+ "Level DEBUG - to log the Exception + Messages. \n";
+			appendException(text);
 
-			appendToPane(
-					tPane,
-					"Type the following comments \n "
-							+ "connect <Server> <Port> - to connect to the server \n "
-							+ "send <message> - to send message to the server \n "
-							+ "disconnect - to disconnect from the server \n "
-							+ "quit - to quit the application \n "
-							+ "logLevel <level> - to set the log level for the logger. \n Level - INFO to denote messages \n Level - DEBUG indicates the Exception Messages",
-					Color.RED);
-			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
-
-		} else {
-			appendToPane(
-					tPane,
-					"Please enter a valid command. \n "
-							+ "Type the following comments \n "
-							+ "connect <Server> <Port> - to connect to the server \n "
-							+ "send <message> - to send message to the server \n "
-							+ "disconnect - to disconnect from the server \n "
-							+ "quit - to quit the application \n "
-							+ "logLevel <level> - to set the log level for the logger. \n Level - INFO to denote messages \n Level - DEBUG indicates the Exception Messages",
-					Color.RED);
-			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
+		} 
+				else {
+			text = "Please enter a valid command. \n "
+					+ "Type the following comments \n "
+					+ "connect <Server> <Port> - to connect to the server \n "
+					+ "send <message> - to send message to the server \n "
+					+ "disconnect - to disconnect from the server \n "
+					+ "quit - to quit the application \n "
+					+ "logLevel <level> - to set the log level for the logger. \n +"
+					+ "Level INFO - to log messages. \n "
+					+ "Level DEBUG - to log the Exception + Messages. \n";
+			appendException(text);
 
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
+	 */
 	@Override
 	public void keyReleased(KeyEvent e) {
 		String text = "";
+		/**
+		 * Add EchoClient> prompt whenever ENTER Key is pressed.
+		 */
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			text = tPane.getText().substring(
 					tPane.getText().lastIndexOf(">") + 1,
 					tPane.getText().length());
-			System.out.print("tPane : " + tPane.getDocument().getLength()
-					+ "  text: " + text);
 			appendToPane(tPane, "EchoClient>", Color.DARK_GRAY);
 			try {
-				inspectText(text);
+				communication(text);
 			} catch (IOException e1) {
 				appendToPane(tPane, e1.getMessage() + "\n", Color.RED);
 				e1.printStackTrace();
@@ -239,6 +309,10 @@ public class Application extends JFrame implements KeyListener {
 		AttributeSet attributeSet = tPane.getInputAttributes();
 		Color c = (Color) (attributeSet == null ? null : attributeSet
 				.getAttribute(StyleConstants.Foreground));
+		/**
+		 * BACKSPACE should not delete EchoClient> Prompt.
+		 */
+
 		if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE && c.getRed() == 255) {
 			appendToPane(tPane, "", Color.BLACK);
 			e.consume();
@@ -250,30 +324,26 @@ public class Application extends JFrame implements KeyListener {
 		}
 	}
 
-	public void setText(String text) {
-		this.text = text;
-	}
-
-	public String getText() {
-		return text;
-
-	}
-
 	@Override
 	public void keyTyped(KeyEvent arg0) {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {
-		// TODO Auto-generated method stub
 	}
 
+	/**
+	 * @param args
+	 */
 	public static void main(String[] args) {
 
-		// /PropertyConfigurator.configure("log4j.properties");
 		org.apache.log4j.BasicConfigurator.configure();
+		
 		PropertyConfigurator.configure("log.config");
+
+	 
+	  
+	  
 
 		mylogger.info("Log msg");
 
