@@ -269,7 +269,7 @@ public class Application extends JFrame implements KeyListener {
 		
 		
 		else if (text.trim().equals("help")) {
-			System.out.println("help inside");
+			
 			text = "Type the following comments \n "
 					+ "connect <Server> <Port> - to connect to the server \n "
 					+ "send <message> - to send message to the server \n "
@@ -365,7 +365,7 @@ public class Application extends JFrame implements KeyListener {
 	  
 	  
 
-		mylogger.info("Log msg");
+		
 
 		logDir = "logs/client.log"; //Log file and path
 		pattern = "%d{ISO8601} %-5p [%t] %c: %m%n";
